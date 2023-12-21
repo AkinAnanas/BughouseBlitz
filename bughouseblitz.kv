@@ -1,0 +1,29 @@
+
+<FloatLayout>:
+    AnchorLayout:
+        id: container
+        anchor_x: 'center'
+        anchor_y: 'center'
+        size_hint: None, None
+        size: 400, 400
+        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+        BoardWidget:
+            id: boardWidget
+            size_hint: 1, 1
+            Label:
+                text: ' a b c d e f g h '
+                size_hint: .9, .05
+                pos_hint: {'x':.05,'y':.05}
+                color: 1, 1, 1, 1
+    Button:
+        text: 'Flip'
+        size_hint: None, None
+        size: 50, 30
+        pos_hint: {"x":.1, "y":.1}
+        on_press: boardWidget.flip()
+    Button:
+        text: 'Test from_str()'
+        size_hint: None, None
+        size: 50, 30
+        pos_hint: {"x":.3, "y":.1}
+        on_press: boardWidget.test()
