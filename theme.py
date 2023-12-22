@@ -3,11 +3,13 @@ import utils
 
 class Theme:
     def __init__(self):
-        self.light = utils.from_hex("eeeed2")
-        self.dark = utils.from_hex("769656")
-        self.background = utils.from_hex("baca44")
-        self.highlight = utils.from_hex("FFA500")
-        self.accent = utils.from_hex("#ffffff")
+        self.light = utils.from_hex('eeeed2')
+        self.dark = utils.from_hex('769656')
+        self.background = utils.from_hex('baca44')
+        self.highlight = utils.from_hex('FFA500')
+        self.accent = utils.from_hex('#ffffff')
+        self.danger = utils.from_preset('RED')
+        self.contrast = utils.from_preset('GRAY')
 
     @staticmethod
     def create(light, dark, background, highlight, accent):

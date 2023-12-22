@@ -62,7 +62,7 @@ class Game:
         piece1 = next_board.get_piece(start_pos[0], start_pos[1])
         piece2 = next_board.get_piece(dest_pos[0], dest_pos[1])
         if piece1 is None or not self.validate_move(start_pos, dest_pos):
-            return
+            return False  # move unsuccessful
         piece1.pos = dest_pos
         # handle capturing of the piece
         if piece2 is not None:
@@ -79,6 +79,7 @@ class Game:
         self.turn = WHITE if self.turn == BLACK else BLACK  # toggle who moves
         if piece1.color == WHITE:
             self.moves += 1
+        return True  # move successful
 
     def validate_move(self, start_pos, dest_pos):
         piece1 = self.board.get_piece(start_pos[0], start_pos[1])
@@ -89,7 +90,9 @@ class Game:
             return False
         #  if it is a regular game, there can't be a piece of the same color
         #  in the destination position for the move to be considered 'legal'
-        return self.board.is_legal_move(start_pos, dest_pos)
+        if self.game_type != GAME_TYPES['UNDEFINED']:
+            return self.board.is_legal_move(start_pos, dest_pos)
+        return True
 
     def next(self):
         if self.index < len(self.boards) - 1:

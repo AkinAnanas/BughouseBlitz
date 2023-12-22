@@ -1,25 +1,6 @@
-from typing import Any
-
+from constants import *
 from piece import *
-
-BLACK = 0
-WHITE = 1
-RANKS = list(range(1, 9))
-FILES = "abcdefgh"
-RANK_COUNT = 8
-FILE_COUNT = 8
-
-
-class Square:
-    def __init__(self, b, x, y):
-        self.board = b
-        self.file = FILES[x]
-        self.rank = RANKS[y]
-        self.pos = (x, y)
-        self.name = f"{self.file}{self.rank}"
-        self.color = BLACK if (x + y) % 2 == 0 else WHITE
-        self.rect = None
-        self.circle = None
+from square import Square
 
 
 class Board:
@@ -45,6 +26,11 @@ class Board:
             if sqr.pos == (x, y):
                 return sqr
         return None
+
+    def get_king(self, color) -> King:
+        for piece in self.pieces:
+            if piece.type == 'K' and piece.color == color:
+                return piece
 
     # initialize all the pieces and squares
     def setup_board(self):
@@ -86,18 +72,14 @@ class Board:
     def is_legal_move(self, start_pos, dest_pos):
         piece1 = self.get_piece(start_pos[0], start_pos[1])
         piece2 = self.get_piece(dest_pos[0], dest_pos[1])
+        square = self.get_square(dest_pos[0], dest_pos[1]).pos
         # cannot capture your own piece
-        if piece1 is not None and piece2 is not None and piece1.color == piece2.color:
+        if piece2 is not None and piece1.color == piece2.color:
+            return False
+        # only check possible moves
+        if list(square) not in piece1.get_possible_moves():
             return False
         return True
-
-    def is_capture_move(self, start_pos, dest_pos):
-        piece1 = self.get_piece(start_pos[0], start_pos[1])
-        piece2 = self.get_piece(dest_pos[0], dest_pos[1])
-        if piece1 is None or piece2 is None:
-            return False
-        else:
-            return not piece1.color == piece2.color
 
     @staticmethod
     def from_str(data):

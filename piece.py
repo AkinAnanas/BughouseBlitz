@@ -1,4 +1,4 @@
-
+from square import Square
 
 MATERIAL_VALUES = {
     '': 1, 'R': 5,
@@ -13,7 +13,7 @@ class Piece:
         self.pos = (x, y)
         self.color = c
         self.type = t
-        self.has_moved = False  # important for castling
+        self.has_moved = False  # for castling and pawn movement
         self.captured = False
         self.name = ['b', 'w'][self.color] + t
         self.rect = None
@@ -24,8 +24,7 @@ class Piece:
         self.pos = [-1, -1]
 
     def get_possible_moves(self):
-        possible_moves = []
-        return possible_moves
+        return []
 
     def __str__(self):
         return self.name
@@ -44,6 +43,17 @@ class Rook(Piece):
 class Knight(Piece):
     def __init__(self, b, x, y, c):
         super(Knight, self).__init__(b, x, y, c, 'N')
+
+    def get_possible_moves(self):
+        possible_moves = [[self.pos[0] - 2, self.pos[1] + 1], [self.pos[0] - 2, self.pos[1] - 1],
+                          [self.pos[0] + 2, self.pos[1] + 1], [self.pos[0] + 2, self.pos[1] - 1],
+                          [self.pos[0] + 1, self.pos[1] - 2], [self.pos[0] - 1, self.pos[1] - 2],
+                          [self.pos[0] + 1, self.pos[1] + 2], [self.pos[0] - 1, self.pos[1] + 2]]
+        for i in reversed(range(len(possible_moves))):
+            move = possible_moves[i]
+            if not Square.is_valid(move[0], move[1]):
+                del possible_moves[i]
+        return possible_moves
 
 
 class Bishop(Piece):

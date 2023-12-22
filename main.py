@@ -8,7 +8,7 @@ from kivy.uix.popup import Popup
 from kivy.uix.widget import Widget
 from kivy.uix.button import Button
 
-from board import Board, RANK_COUNT, FILE_COUNT, WHITE
+from constants import *
 from game import Game, GAME_TYPES
 from theme import THEMES
 import utils
@@ -42,6 +42,7 @@ class BoardWidget(Widget):
             self.render_pieces()
 
     def render_pieces(self):
+        self.render_possible_moves()
         # setup and draw all the pieces
         for piece in self.game.view_board.pieces:
             draw_pos = [RANK_COUNT - (piece.pos[0] + 1),
@@ -50,7 +51,6 @@ class BoardWidget(Widget):
             Color(1, 1, 1, 1, mode='rgba')
             texture = Image(f'assets/pieces/{piece.name}.png').texture
             piece.rect = Rectangle(texture=texture, pos=piece_pos, size=(self.square_length, self.square_length))
-        self.render_possible_moves()
 
     def render_squares(self):
         # get the theme colors
@@ -75,13 +75,16 @@ class BoardWidget(Widget):
         moves = self.selected_piece.get_possible_moves()
         for move in moves:
             sqr = self.game.board.get_square(move[0], move[1])
-            sqr_pos = self.board_to_screen_pos(sqr.pos)
+            draw_pos = [RANK_COUNT - (sqr.pos[0] + 1), FILE_COUNT - (sqr.pos[1] + 1)] \
+                if self.draw_flipped else sqr.pos
+            sqr_pos = self.board_to_screen_pos(draw_pos)
             # center the circle in the square
-            sqr_pos[0] = sqr_pos[0] + self.square_length / 2
-            sqr_pos[1] = sqr_pos[1] + self.square_length / 2
-            c = self.theme.accent
+            circle_length = self.square_length / 3
+            sqr_pos[0] = sqr_pos[0] + self.square_length / 2 - circle_length / 2
+            sqr_pos[1] = sqr_pos[1] + self.square_length / 2 - circle_length / 2
+            c = self.theme.contrast
             Color(c[0], c[1], c[2], c[3], mode='rgba')
-            sqr.circle = Ellipse(pos=sqr_pos, size=[self.square_length / 2, self.square_length / 2])
+            sqr.circle = Ellipse(pos=sqr_pos, size=[circle_length, circle_length])
 
     def flip(self):
         # toggle draw flipped variable
@@ -168,10 +171,10 @@ class BoardWidget(Widget):
             hover_sqr = self.get_square(touch.pos)
             if hover_sqr is not None:
                 sqr = hover_sqr
-            self.game.move(self.selected_piece.pos, sqr.pos)
+            result = self.game.move(self.selected_piece.pos, sqr.pos)
             self.selected_square = None
             self.selected_piece = None
-            if self.auto_flip and self.game.game_type == GAME_TYPES['P/P']:
+            if self.auto_flip and result and self.game.game_type == GAME_TYPES['P/P']:
                 self.flip()
             self.render()
 

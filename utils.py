@@ -6,7 +6,8 @@ PRESET_COLORS = {
     'BLACK': [0, 0, 0, 0],
     'RED': [1, 0, 0, 1],
     'BLUE': [0, 0, 1, 1],
-    'GREEN': [0, 1, 0, 1]
+    'GREEN': [0, 1, 0, 1],
+    'GRAY': [.5, .5, .5, 1]
 }
 
 GAME_SOUNDS: dict[str, Sound] = {
