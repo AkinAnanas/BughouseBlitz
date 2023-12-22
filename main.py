@@ -1,41 +1,38 @@
 from kivy.app import App
 from kivy.core.image import Image
 from kivy.graphics import Color
-from kivy.graphics import Rectangle
+from kivy.graphics import Rectangle, Ellipse
 from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.popup import Popup
 from kivy.uix.widget import Widget
+from kivy.uix.button import Button
 
 from board import Board, RANK_COUNT, FILE_COUNT, WHITE
-from theme import DEFAULT
+from game import Game, GAME_TYPES
+from theme import THEMES
 import utils
 
 
 class BoardWidget(Widget):
     def __init__(self, **kwargs):
         super(BoardWidget, self).__init__(**kwargs)
-        self.board = Board()  # current board
-        self.boards = []  # previous boards
+        self.app = App.get_running_app()
+        self.game = Game()
         self.selected_square = None
         self.selected_piece = None
-        self.theme = DEFAULT
+        self.theme = self.app.theme
         self.background = None
+        self.popup = None
         self.draw_flipped = False
+        self.auto_flip = True
+        self.show_possible_moves = True
         self.margin = 0
         self.square_length = 0
         self.bind(size=self.render, pos=self.render)
 
-    def test(self):
-        data = str(self.board)
-        self.set_board(Board.from_str(data))
-
-    def set_board(self, board):
-        self.board = board
-        self.boards.clear()
-        self.selected_square = None
-        self.selected_piece = None
-        self.render()
-
     def render(self, *args):
+        self.theme = self.app.theme
         self.canvas.clear()
         with self.canvas:
             # resize everything
@@ -46,13 +43,14 @@ class BoardWidget(Widget):
 
     def render_pieces(self):
         # setup and draw all the pieces
-        for piece in self.board.pieces:
+        for piece in self.game.view_board.pieces:
             draw_pos = [RANK_COUNT - (piece.pos[0] + 1),
                         FILE_COUNT - (piece.pos[1] + 1)] if self.draw_flipped else piece.pos
             piece_pos = self.board_to_screen_pos(draw_pos)
             Color(1, 1, 1, 1, mode='rgba')
             texture = Image(f'assets/pieces/{piece.name}.png').texture
             piece.rect = Rectangle(texture=texture, pos=piece_pos, size=(self.square_length, self.square_length))
+        self.render_possible_moves()
 
     def render_squares(self):
         # get the theme colors
@@ -61,7 +59,7 @@ class BoardWidget(Widget):
         Color(bg[0], bg[1], bg[2], bg[3], mode='rgba')
         self.background = Rectangle(pos=(self.pos[0], self.pos[1]), size=(self.width, self.height))
         # setup and draw all rectangles
-        for sqr in self.board.squares:
+        for sqr in self.game.view_board.squares:
             sqr_color = light if sqr.color == WHITE else dark
             # highlight the selected square
             if sqr == self.selected_square:
@@ -72,7 +70,18 @@ class BoardWidget(Widget):
             sqr.rect = Rectangle(pos=sqr_pos, size=(self.square_length, self.square_length))
 
     def render_possible_moves(self):
-        pass
+        if not self.show_possible_moves or self.selected_piece is None or self.game.game_type == GAME_TYPES['UNDEFINED']:
+            return
+        moves = self.selected_piece.get_possible_moves()
+        for move in moves:
+            sqr = self.game.board.get_square(move[0], move[1])
+            sqr_pos = self.board_to_screen_pos(sqr.pos)
+            # center the circle in the square
+            sqr_pos[0] = sqr_pos[0] + self.square_length / 2
+            sqr_pos[1] = sqr_pos[1] + self.square_length / 2
+            c = self.theme.accent
+            Color(c[0], c[1], c[2], c[3], mode='rgba')
+            sqr.circle = Ellipse(pos=sqr_pos, size=[self.square_length / 2, self.square_length / 2])
 
     def flip(self):
         # toggle draw flipped variable
@@ -81,6 +90,31 @@ class BoardWidget(Widget):
         self.selected_piece = None
         self.selected_square = None
         self.render()
+
+    def new_game(self):
+        layout = BoxLayout(orientation='vertical')
+        cancel_button = Button(text='Cancel')
+        buttons = []
+        for k, v in GAME_TYPES.items():
+            if v >= 0:
+                text = (k.replace('/', ' vs ').replace('+', ' + ')
+                        .replace(' P', ' Player').replace('P ', 'Player '))
+                button = StartButton(boardWidget=self, text=f'{v}. {text}')
+                layout.add_widget(button)
+                buttons.append(button)
+        layout.add_widget(cancel_button)
+        self.popup = Popup(title='New Game', content=layout, auto_dismiss=False)
+        cancel_button.bind(on_press=self.popup.dismiss)
+        for button in buttons:
+            button.popup = self.popup
+        self.popup.open()
+
+    def start_game(self, game_type):
+        if game_type < 3:  # single-player chosen
+            self.game.start_game(game_type)
+            self.render()
+        else:  # multi-player, initiate server communication
+            pass
 
     def board_to_screen_pos(self, pos):
         x = self.square_length * pos[0] + self.margin + self.background.pos[0]
@@ -102,17 +136,17 @@ class BoardWidget(Widget):
             return utils.dist(sqr_pos[0], sqr_pos[1], pos[0], pos[1])
 
         # sort the squares by their distance to the mouse
-        self.board.squares.sort(key=lambda sqr: dist_from_pos(sqr))
+        self.game.view_board.squares.sort(key=lambda sqr: dist_from_pos(sqr))
 
         # return the closest square
-        return self.board.squares[0]
+        return self.game.view_board.squares[0]
 
     def on_touch_down(self, touch):
         # select a piece to move
         sqr = self.get_square(touch.pos)
         if sqr is None:
             return
-        piece = self.board.get_piece(sqr.pos[0], sqr.pos[1])
+        piece = self.game.view_board.get_piece(sqr.pos[0], sqr.pos[1])
         # only select the square if it has a piece on it
         if piece is not None:
             self.selected_square = sqr
@@ -127,15 +161,45 @@ class BoardWidget(Widget):
             self.selected_piece.rect.pos = [x, y]
 
     def on_touch_up(self, touch):
-        # return the piece to its original position
         if self.selected_piece is not None:
+            # return the piece to its original position
+            # if move isn't valid
             sqr = self.selected_square
-            sqr_pos = self.board_to_screen_pos(sqr.pos)
-            self.selected_piece.rect.pos = sqr_pos
+            hover_sqr = self.get_square(touch.pos)
+            if hover_sqr is not None:
+                sqr = hover_sqr
+            self.game.move(self.selected_piece.pos, sqr.pos)
+            self.selected_square = None
+            self.selected_piece = None
+            if self.auto_flip and self.game.game_type == GAME_TYPES['P/P']:
+                self.flip()
             self.render()
+
+    def next(self):
+        self.game.next()
+        self.render()
+
+    def back(self):
+        self.game.back()
+        self.render()
+
+
+class StartButton(Button):
+    def __init__(self, boardWidget, **kwargs):
+        super(StartButton, self).__init__(**kwargs)
+        self.game_type = -1
+        self.boardWidget = boardWidget
+        self.popup = None
+
+    def on_press(self):
+        self.game_type = int(self.text.split('.')[0])
+        self.boardWidget.start_game(self.game_type)
+        self.popup.dismiss()
 
 
 class BughouseBlitzApp(App):
+    theme = THEMES['DEFAULT']
+
     def build(self):
         return FloatLayout()
 

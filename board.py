@@ -1,3 +1,5 @@
+from typing import Any
+
 from piece import *
 
 BLACK = 0
@@ -17,10 +19,12 @@ class Square:
         self.name = f"{self.file}{self.rank}"
         self.color = BLACK if (x + y) % 2 == 0 else WHITE
         self.rect = None
+        self.circle = None
 
 
 class Board:
     def __init__(self):
+        self.index = -1
         self.squares = []
         # initialize the squares
         for y in range(FILE_COUNT):
@@ -30,13 +34,13 @@ class Board:
         self.pieces = []
         self.setup_board()
 
-    def get_piece(self, x, y):
+    def get_piece(self, x, y) -> Piece | None:
         for piece in self.pieces:
             if piece.pos == (x, y):
                 return piece
         return None
 
-    def get_square(self, x, y):
+    def get_square(self, x, y) -> Square | None:
         for sqr in self.squares:
             if sqr.pos == (x, y):
                 return sqr
@@ -79,6 +83,22 @@ class Board:
                   bn2, wb1, wb2, bb1, bb2, wq, bq, wk, bk]:
             self.pieces.append(p)
 
+    def is_legal_move(self, start_pos, dest_pos):
+        piece1 = self.get_piece(start_pos[0], start_pos[1])
+        piece2 = self.get_piece(dest_pos[0], dest_pos[1])
+        # cannot capture your own piece
+        if piece1 is not None and piece2 is not None and piece1.color == piece2.color:
+            return False
+        return True
+
+    def is_capture_move(self, start_pos, dest_pos):
+        piece1 = self.get_piece(start_pos[0], start_pos[1])
+        piece2 = self.get_piece(dest_pos[0], dest_pos[1])
+        if piece1 is None or piece2 is None:
+            return False
+        else:
+            return not piece1.color == piece2.color
+
     @staticmethod
     def from_str(data):
         board = Board()
@@ -87,19 +107,42 @@ class Board:
         for y in range(len(lines)):
             cols = lines[y].split('.')
             for x in range(len(cols)):
-                match cols[x]:
-                    # pawns
-                    case 'w':
-                        wp = Pawn(board, x, y, WHITE)
-                        board.pieces.append(wp)
-                    case 'b':
-                        bp = Pawn(board, x, y, BLACK)
-                        board.pieces.append(bp)
-                    #
+                code = cols[x]
+                color = WHITE if code[0] == 'w' else BLACK
+                if len(code) == 1:
+                    match code[0]:
+                        case '-':
+                            continue
+                        case 'w':
+                            p = Pawn(board, x, y, color)
+                            board.pieces.append(p)
+                        case 'b':
+                            p = Pawn(board, x, y, color)
+                            board.pieces.append(p)
+                else:
+                    match code[1]:
+                        case 'Q':
+                            q = Queen(board, x, y, color)
+                            board.pieces.append(q)
+                        case 'K':
+                            k = King(board, x, y, color)
+                            board.pieces.append(k)
+                        case 'N':
+                            n = Knight(board, x, y, color)
+                            board.pieces.append(n)
+                        case 'B':
+                            b = Bishop(board, x, y, color)
+                            board.pieces.append(b)
+                        case 'R':
+                            r = Rook(board, x, y, color)
+                            board.pieces.append(r)
         return board
 
-    def __copy__(self):
-        pass
+    def copy(self):
+        data = str(self)
+        cpy = Board.from_str(data)
+        cpy.index = self.index
+        return cpy
 
     def __str__(self):
         board_str = ""
@@ -107,6 +150,8 @@ class Board:
             for x in range(RANK_COUNT):
                 p = self.get_piece(x, y)
                 board_str += ('-' if p is None else p.name)
-                board_str += '.'
-            board_str += '\n'
+                if x < RANK_COUNT - 1:
+                    board_str += '.'
+            if y < FILE_COUNT - 1:
+                board_str += '\n'
         return board_str

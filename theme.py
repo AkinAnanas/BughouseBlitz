@@ -9,14 +9,25 @@ class Theme:
         self.highlight = utils.from_hex("FFA500")
         self.accent = utils.from_hex("#ffffff")
 
-    def set(self, light, dark, background, highlight, accent):
-        self.light = light
-        self.dark = dark
-        self.background = background
-        self.highlight = highlight
-        self.accent = accent
+    @staticmethod
+    def create(light, dark, background, highlight, accent):
+        theme = Theme()
+        theme.light = light
+        theme.dark = dark
+        theme.background = background
+        theme.highlight = highlight
+        theme.accent = accent
+        return theme
 
-
-DEFAULT = Theme()
 
 # TODO: create other themes (light, dark, etc)
+THEMES = {
+    'DEFAULT': Theme(),
+    'LIGHT': Theme.create(
+        utils.from_rgba(232, 235, 239, 255),
+        utils.from_rgba(125, 135, 150, 255),
+        utils.from_preset('BLUE'),
+        utils.from_preset('BLUE'),
+        utils.from_preset('BLUE'),
+    )
+}

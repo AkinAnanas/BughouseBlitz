@@ -1,4 +1,19 @@
 import math
+from kivy.core.audio import Sound, SoundLoader
+
+PRESET_COLORS = {
+    'WHITE': [1, 1, 1, 1],
+    'BLACK': [0, 0, 0, 0],
+    'RED': [1, 0, 0, 1],
+    'BLUE': [0, 0, 1, 1],
+    'GREEN': [0, 1, 0, 1]
+}
+
+GAME_SOUNDS: dict[str, Sound] = {
+    'MOVE': SoundLoader.load('assets/sounds/move.wav'),
+    'CAPTURE': SoundLoader.load('assets/sounds/capture.wav'),
+    'NOTIFY': SoundLoader.load('assets/sounds/notify.wav')
+}
 
 
 def from_rgba(r, g, b, a):
@@ -12,6 +27,14 @@ def from_hex(hex_str):
     b = int(c[4:6], 16)
     a = 255 if len(c) < 7 else int(c[6:8], 16)
     return from_rgba(r, g, b, a)
+
+
+def from_preset(name):
+    return PRESET_COLORS[name]
+
+
+def play_sound(name):
+    GAME_SOUNDS[name].play()
 
 
 def multiply_colors(c1, c2):
