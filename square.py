@@ -12,6 +12,9 @@ class Square:
         self.rect = None
         self.circle = None
 
+    def is_empty(self):
+        return self.board.get_piece(self.pos[0], self.pos[1]) is None
+
     @staticmethod
     def is_valid(x, y):
         return -1 < x < len(FILES) and -1 < y < len(RANKS)

@@ -152,9 +152,12 @@ class BoardWidget(Widget):
         piece = self.game.view_board.get_piece(sqr.pos[0], sqr.pos[1])
         # only select the square if it has a piece on it
         if piece is not None:
-            self.selected_square = sqr
-            self.selected_piece = piece
-            self.render()
+            # can select any piece if game_type is undefined, otherwise can only
+            # select a piece with the color of the person whose turn it is
+            if self.game.game_type == GAME_TYPES['UNDEFINED'] or self.game.turn == piece.color:
+                self.selected_square = sqr
+                self.selected_piece = piece
+                self.render()
 
     def on_touch_move(self, touch):
         # draw the piece by the mouse
@@ -201,7 +204,7 @@ class StartButton(Button):
 
 
 class BughouseBlitzApp(App):
-    theme = THEMES['DEFAULT']
+    theme = THEMES['BLUE']
 
     def build(self):
         return FloatLayout()

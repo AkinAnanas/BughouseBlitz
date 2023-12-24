@@ -21,6 +21,20 @@ class Board:
                 return piece
         return None
 
+    def get_pieces_by_color(self, color) -> [Piece]:
+        pieces = []
+        for piece in self.pieces:
+            if piece.color == color:
+                pieces.append(piece)
+        return pieces
+
+    def get_pieces_by_type(self, piece_type):
+        pieces = []
+        for piece in self.pieces:
+            if piece.piece_type == piece_type:
+                pieces.append(piece)
+        return pieces
+
     def get_square(self, x, y) -> Square | None:
         for sqr in self.squares:
             if sqr.pos == (x, y):
@@ -29,7 +43,7 @@ class Board:
 
     def get_king(self, color) -> King:
         for piece in self.pieces:
-            if piece.type == 'K' and piece.color == color:
+            if piece.piece_type == 'K' and piece.color == color:
                 return piece
 
     # initialize all the pieces and squares
@@ -69,17 +83,27 @@ class Board:
                   bn2, wb1, wb2, bb1, bb2, wq, bq, wk, bk]:
             self.pieces.append(p)
 
+    def move(self, start_pos, dest_pos):
+        piece1 = self.get_piece(start_pos[0], start_pos[1])
+        piece2 = self.get_piece(dest_pos[0], dest_pos[1])
+        piece1.pos = dest_pos
+        piece1.has_moved = True
+        if piece2 is not None:
+            piece2.capture()
+        # return not self.get_king(piece1.color).in_check()
+        return True
+
     def is_legal_move(self, start_pos, dest_pos):
         piece1 = self.get_piece(start_pos[0], start_pos[1])
         piece2 = self.get_piece(dest_pos[0], dest_pos[1])
-        square = self.get_square(dest_pos[0], dest_pos[1]).pos
         # cannot capture your own piece
         if piece2 is not None and piece1.color == piece2.color:
             return False
-        # only check possible moves
-        if list(square) not in piece1.get_possible_moves():
+        # cannot move out of bounds
+        if not Square.is_valid(dest_pos[0], dest_pos[1]):
             return False
-        return True
+        # not legal if move allows own king to be in check
+        return self.copy().move(start_pos, dest_pos)
 
     @staticmethod
     def from_str(data):
@@ -121,10 +145,12 @@ class Board:
         return board
 
     def copy(self):
-        data = str(self)
-        cpy = Board.from_str(data)
-        cpy.index = self.index
-        return cpy
+        board = Board()
+        board.index = self.index
+        board.pieces.clear()
+        for piece in self.pieces:
+            board.pieces.append(piece.copy(board, type(piece)))
+        return board
 
     def __str__(self):
         board_str = ""

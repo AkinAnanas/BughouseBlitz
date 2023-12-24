@@ -1,20 +1,55 @@
-
-<FloatLayout>:
+<BackgroundColor@Widget>
+    background_color: 1, 1, 1, 1
     canvas.before:
+        Color:
+            rgba: root.background_color
         Rectangle:
             size: self.size
             pos: self.pos
+
+<Button>:
+    font_name: 'assets/fonts/karla'
+    font_size: 36
+    color: 1, 1, 1, 1
+    background_color: app.theme.dark
+
+<HeaderLabel@Button>:
+    background_color: [app.theme.dark[0] * 2, app.theme.dark[1] * 2, app.theme.dark[2] * 2, 1]
+    background_down: self.background_normal
+
+<Popup>:
+    title_font: 'assets/fonts/karla'
+    title_size: 36
+    size_hint: .75, .75
+    separator_color: app.theme.dark
+    background_color: app.theme.background
+
+<FloatLayout>:
+    canvas.before:
         Color:
             rgba: app.theme.accent
+        Rectangle:
+            size: self.size
+            pos: self.pos
     AnchorLayout:
-        id: container
+        anchor_y: 'top'
+        anchor_x: 'center'
+        BoxLayout:
+            size_hint: 1, .1
+            Button:
+                text: 'Settings'
+            HeaderLabel:
+                text: 'Bughouse Blitz'
+            HeaderLabel:
+                text: 'Time Control'
+    AnchorLayout:
         anchor_x: 'center'
         anchor_y: 'center'
         size_hint: None, None
         size: 600, 600
         pos_hint: {"center_x": 0.5, "center_y": 0.5}
         BoardWidget:
-            id: boardWidget
+            id: board_widget
             size_hint: 1, 1
             Label:
                 text: ' a b c d e f g h '
@@ -23,21 +58,16 @@
                 color: 1, 1, 1, 1
     BoxLayout:
         id: controls
-        text: 'Controls'
         size_hint: 1, .1
         Button:
-            text: 'Flip'
-            size: 50, 30
-            on_press: boardWidget.flip()
+            text: 'New Game'
+            on_press: board_widget.new_game()
         Button:
             text: '<'
-            size: 50, 30
-            on_press: boardWidget.back()
+            on_press: board_widget.back()
         Button:
             text: '>'
-            size: 50, 30
-            on_press: boardWidget.next()
+            on_press: board_widget.next()
         Button:
-            text: 'New Game'
-            size: 50, 30
-            on_press: boardWidget.new_game()
+            text: 'Flip'
+            on_press: board_widget.flip()

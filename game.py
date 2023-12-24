@@ -62,14 +62,9 @@ class Game:
         piece1 = next_board.get_piece(start_pos[0], start_pos[1])
         piece2 = next_board.get_piece(dest_pos[0], dest_pos[1])
         if piece1 is None or not self.validate_move(start_pos, dest_pos):
-            return False  # move unsuccessful
-        piece1.pos = dest_pos
-        # handle capturing of the piece
-        if piece2 is not None:
-            piece2.capture()
-            utils.play_sound('CAPTURE')
-        else:
-            utils.play_sound('MOVE')
+            return False  # move is not legal
+        next_board.move(start_pos, dest_pos)  # make the move
+        utils.play_sound('CAPTURE' if piece2 is not None else 'MOVE')
         # update the board and view_board
         self.board = next_board
         self.view_board = self.board
@@ -82,16 +77,14 @@ class Game:
         return True  # move successful
 
     def validate_move(self, start_pos, dest_pos):
+        # piece1 = piece being moved, piece2 = piece being captured if any
         piece1 = self.board.get_piece(start_pos[0], start_pos[1])
         piece2 = self.board.get_piece(dest_pos[0], dest_pos[1])
-        #  if the game type is undefined, there can't be a piece
-        #  in the destination position for the move to be considered 'legal'
-        if self.game_type == GAME_TYPES['UNDEFINED'] and piece2 is not None:
+        #  if the game type is undefined, don't allow captures
+        if piece1 is None or (self.game_type == GAME_TYPES['UNDEFINED'] and piece2 is not None):
             return False
-        #  if it is a regular game, there can't be a piece of the same color
-        #  in the destination position for the move to be considered 'legal'
         if self.game_type != GAME_TYPES['UNDEFINED']:
-            return self.board.is_legal_move(start_pos, dest_pos)
+            return list(dest_pos) in piece1.get_possible_moves()
         return True
 
     def next(self):
