@@ -102,7 +102,7 @@ class BoardWidget(Widget):
             if v >= 0:
                 text = (k.replace('/', ' vs ').replace('+', ' + ')
                         .replace(' P', ' Player').replace('P ', 'Player '))
-                button = StartButton(boardWidget=self, text=f'{v}. {text}')
+                button = StartButton(board_widget=self, text=f'{v}. {text}')
                 layout.add_widget(button)
                 buttons.append(button)
         layout.add_widget(cancel_button)
@@ -191,15 +191,15 @@ class BoardWidget(Widget):
 
 
 class StartButton(Button):
-    def __init__(self, boardWidget, **kwargs):
+    def __init__(self, board_widget, **kwargs):
         super(StartButton, self).__init__(**kwargs)
         self.game_type = -1
-        self.boardWidget = boardWidget
+        self.board_widget = board_widget
         self.popup = None
 
     def on_press(self):
         self.game_type = int(self.text.split('.')[0])
-        self.boardWidget.start_game(self.game_type)
+        self.board_widget.start_game(self.game_type)
         self.popup.dismiss()
 
 
