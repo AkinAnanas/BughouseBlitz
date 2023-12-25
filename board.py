@@ -46,6 +46,13 @@ class Board:
             if piece.piece_type == 'K' and piece.color == color:
                 return piece
 
+    def get_en_passant_pawn(self) -> Pawn | None:
+        for piece in self.pieces:
+            if piece.piece_type == '':
+                if piece.en_passant:
+                    return piece
+        return None
+
     # initialize all the pieces and squares
     def setup_board(self):
         self.pieces.clear()
@@ -86,14 +93,12 @@ class Board:
     def move(self, start_pos, dest_pos):
         piece1 = self.get_piece(start_pos[0], start_pos[1])
         piece2 = self.get_piece(dest_pos[0], dest_pos[1])
-        piece1.pos = dest_pos
+        piece1.pos = tuple(dest_pos)
         piece1.has_moved = True
         if piece2 is not None:
             piece2.capture()
-        # return not self.get_king(piece1.color).in_check()
-        return True
 
-    def is_legal_move(self, start_pos, dest_pos):
+    def is_valid_move(self, start_pos, dest_pos):
         piece1 = self.get_piece(start_pos[0], start_pos[1])
         piece2 = self.get_piece(dest_pos[0], dest_pos[1])
         # cannot capture your own piece
@@ -102,8 +107,14 @@ class Board:
         # cannot move out of bounds
         if not Square.is_valid(dest_pos[0], dest_pos[1]):
             return False
+        return True
+
+    def is_legal_move(self, start_pos, dest_pos):
+        piece1 = self.get_piece(start_pos[0], start_pos[1])
         # not legal if move allows own king to be in check
-        return self.copy().move(start_pos, dest_pos)
+        next_board = self.copy()
+        next_board.move(start_pos, dest_pos)
+        return not next_board.get_king(piece1.color).in_check()
 
     @staticmethod
     def from_str(data):
@@ -146,7 +157,6 @@ class Board:
 
     def copy(self):
         board = Board()
-        board.index = self.index
         board.pieces.clear()
         for piece in self.pieces:
             board.pieces.append(piece.copy(board, type(piece)))

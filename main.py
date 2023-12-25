@@ -9,7 +9,7 @@ from kivy.uix.widget import Widget
 from kivy.uix.button import Button
 
 from constants import *
-from game import Game, GAME_TYPES
+from game import Game, GAME_TYPES, MOVE_TYPES
 from theme import THEMES
 import utils
 
@@ -68,12 +68,31 @@ class BoardWidget(Widget):
             draw_pos = [RANK_COUNT - (sqr.pos[0] + 1), FILE_COUNT - (sqr.pos[1] + 1)] if self.draw_flipped else sqr.pos
             sqr_pos = self.board_to_screen_pos(draw_pos)
             sqr.rect = Rectangle(pos=sqr_pos, size=(self.square_length, self.square_length))
+        self.render_danger()
+
+    def render_danger(self):
+        danger = self.theme.danger
+        kings = [self.game.view_board.get_king(WHITE), self.game.view_board.get_king(BLACK)]
+        for king in kings:
+            # if the king in danger, change the square
+            if king.in_check():
+                sqr = self.game.view_board.get_square(king.pos[0], king.pos[1])
+                Color(danger[0], danger[1], danger[2], danger[3], mode='rgba')
+                draw_pos = [RANK_COUNT - (sqr.pos[0] + 1), FILE_COUNT - (sqr.pos[1] + 1)] if self.draw_flipped else sqr.pos
+                sqr_pos = self.board_to_screen_pos(draw_pos)
+                sqr.rect = Rectangle(pos=sqr_pos, size=(self.square_length, self.square_length))
 
     def render_possible_moves(self):
-        if not self.show_possible_moves or self.selected_piece is None or self.game.game_type == GAME_TYPES['UNDEFINED']:
+        # render possible moves according to the settings
+        if not self.show_possible_moves or self.selected_piece is None or \
+                self.game.game_type == GAME_TYPES['UNDEFINED']:
             return
-        moves = self.selected_piece.get_possible_moves()
-        for move in moves:
+        # loop through the possible moves
+        for move in self.selected_piece.get_possible_moves():
+            # only render legal moves
+            if self.game.validate_move(self.selected_piece.pos, move) == MOVE_TYPES['ILLEGAL']:
+                continue
+            # get the draw position of the square
             sqr = self.game.board.get_square(move[0], move[1])
             draw_pos = [RANK_COUNT - (sqr.pos[0] + 1), FILE_COUNT - (sqr.pos[1] + 1)] \
                 if self.draw_flipped else sqr.pos
@@ -83,6 +102,7 @@ class BoardWidget(Widget):
             sqr_pos[0] = sqr_pos[0] + self.square_length / 2 - circle_length / 2
             sqr_pos[1] = sqr_pos[1] + self.square_length / 2 - circle_length / 2
             c = self.theme.contrast
+            # render a circle for all legal moves
             Color(c[0], c[1], c[2], c[3], mode='rgba')
             sqr.circle = Ellipse(pos=sqr_pos, size=[circle_length, circle_length])
 
@@ -155,6 +175,7 @@ class BoardWidget(Widget):
             # can select any piece if game_type is undefined, otherwise can only
             # select a piece with the color of the person whose turn it is
             if self.game.game_type == GAME_TYPES['UNDEFINED'] or self.game.turn == piece.color:
+                self.game.view_board = self.game.board
                 self.selected_square = sqr
                 self.selected_piece = piece
                 self.render()

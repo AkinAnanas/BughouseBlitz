@@ -1,5 +1,3 @@
-import copy
-
 from constants import *
 from square import Square
 
@@ -21,10 +19,12 @@ class Piece:
         self.name = ['b', 'w'][self.color] + t
         self.rect = None
         self.value = MATERIAL_VALUES[t]  # the material value of the piece
+        self.possible_moves = []
+        self.calculated_moves = False
 
     def capture(self):
         self.captured = True
-        self.pos = [-1, -1]
+        self.pos = (-1, -1)
 
     def get_possible_moves(self):
         return []
@@ -44,24 +44,30 @@ class Piece:
 class Pawn(Piece):
     def __init__(self, b, x, y, c):
         super(Pawn, self).__init__(b, x, y, c, '')
+        self.en_passant = False
 
     def get_possible_moves(self):
         if self.captured:
             return []
         direction = 1 if self.color == WHITE else -1
         possible_moves = []
+        # only calculate possible moves once for performance purposes
+        if self.calculated_moves:
+            return self.possible_moves
         # moving vertically
         move1 = [self.pos[0], self.pos[1] + direction]
         move2 = [self.pos[0], self.pos[1] + direction * 2]
-        if self.board.is_legal_move(self.pos, move1) and self.board.get_square(move1[0], move1[1]).is_empty():
+        #move2 = [self.pos[0], self.pos[1] + direction * 2, 'EN_PASSANT']
+        if self.board.is_valid_move(self.pos, move1) and self.board.get_square(move1[0], move1[1]).is_empty():
             possible_moves.append(move1)
-        if self.board.is_legal_move(self.pos, move2) and self.board.get_square(move2[0], move2[1]).is_empty() and not self.has_moved:
+        if self.board.is_valid_move(self.pos, move2) and self.board.get_square(move2[0], move2[1]).is_empty() and not self.has_moved:
             possible_moves.append(move2)
         # capturing diagonally
         diagonal_moves = [[self.pos[0] - 1, self.pos[1] + direction], [self.pos[0] + 1, self.pos[1] + direction]]
         for move in diagonal_moves:
-            if self.board.is_legal_move(self.pos, move) and not self.board.get_square(move[0], move[1]).is_empty():
+            if self.board.is_valid_move(self.pos, move) and not self.board.get_square(move[0], move[1]).is_empty():
                 possible_moves.append(move)
+        self.possible_moves = possible_moves
         return possible_moves
 
 
@@ -71,6 +77,9 @@ class Rook(Piece):
 
     def get_possible_moves(self):
         possible_moves = []
+        # only calculate possible moves once for performance purposes
+        if self.calculated_moves:
+            return self.possible_moves
         # loop through the directions that the rook can move in
         for direction in [[-1, 0], [1, 0], [0, -1], [0, 1]]:
             i = 1
@@ -78,7 +87,7 @@ class Rook(Piece):
             while valid:
                 # add all legal moves in a direction until a piece is hit
                 move = [self.pos[0] + direction[0] * i, self.pos[1] + direction[1] * i]
-                if self.board.is_legal_move(self.pos, move):
+                if self.board.is_valid_move(self.pos, move):
                     possible_moves.append(move)
                 # keep checking until the square doesn't exist
                 if not Square.is_valid(move[0], move[1]):
@@ -87,6 +96,7 @@ class Rook(Piece):
                 elif not self.board.get_square(move[0], move[1]).is_empty():
                     valid = False
                 i += 1
+        self.possible_moves = possible_moves
         return possible_moves
 
 
@@ -97,14 +107,18 @@ class Knight(Piece):
     def get_possible_moves(self):
         if self.captured:
             return []
+        # only calculate possible moves once for performance purposes
+        if self.calculated_moves:
+            return self.possible_moves
         possible_moves = [[self.pos[0] - 2, self.pos[1] + 1], [self.pos[0] - 2, self.pos[1] - 1],
                           [self.pos[0] + 2, self.pos[1] + 1], [self.pos[0] + 2, self.pos[1] - 1],
                           [self.pos[0] + 1, self.pos[1] - 2], [self.pos[0] - 1, self.pos[1] - 2],
                           [self.pos[0] + 1, self.pos[1] + 2], [self.pos[0] - 1, self.pos[1] + 2]]
         for i in reversed(range(len(possible_moves))):
             move = possible_moves[i]
-            if not self.board.is_legal_move(self.pos, move):
+            if not self.board.is_valid_move(self.pos, move):
                 del possible_moves[i]
+        self.possible_moves = possible_moves
         return possible_moves
 
 
@@ -114,6 +128,9 @@ class Bishop(Piece):
 
     def get_possible_moves(self):
         possible_moves = []
+        # only calculate possible moves once for performance purposes
+        if self.calculated_moves:
+            return self.possible_moves
         # loop through the directions that the rook can move in
         for direction in [[-1, -1], [-1, 1], [1, -1], [1, 1]]:
             i = 1
@@ -121,15 +138,18 @@ class Bishop(Piece):
             while valid:
                 # add all legal moves in a direction until a piece is hit
                 move = [self.pos[0] + direction[0] * i, self.pos[1] + direction[1] * i]
-                if self.board.is_legal_move(self.pos, move):
+                if self.board.is_valid_move(self.pos, move):
                     possible_moves.append(move)
-                # keep checking until the square doesn't exist
-                if not Square.is_valid(move[0], move[1]):
+                # not a valid move
+                else:
                     valid = False
                 # once a piece is in the way, that's the last piece that can be added (can't jump through pieces)
-                elif not self.board.get_square(move[0], move[1]).is_empty():
+                square = self.board.get_square(move[0], move[1])
+                piece = self.board.get_piece(move[0], move[1])
+                if square is None or not square.is_empty():
                     valid = False
                 i += 1
+        self.possible_moves = possible_moves
         return possible_moves
 
 
@@ -139,6 +159,9 @@ class Queen(Piece):
 
     def get_possible_moves(self):
         possible_moves = []
+        # only calculate possible moves once for performance purposes
+        if self.calculated_moves:
+            return self.possible_moves
         # loop through the directions that the rook can move in
         for direction in [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]]:
             i = 1
@@ -146,7 +169,7 @@ class Queen(Piece):
             while valid:
                 # add all legal moves in a direction until a piece is hit
                 move = [self.pos[0] + direction[0] * i, self.pos[1] + direction[1] * i]
-                if self.board.is_legal_move(self.pos, move):
+                if self.board.is_valid_move(self.pos, move):
                     possible_moves.append(move)
                 # keep checking until the square doesn't exist
                 if not Square.is_valid(move[0], move[1]):
@@ -155,6 +178,7 @@ class Queen(Piece):
                 elif not self.board.get_square(move[0], move[1]).is_empty():
                     valid = False
                 i += 1
+        self.possible_moves = possible_moves
         return possible_moves
 
 
@@ -168,12 +192,23 @@ class King(Piece):
 
     def get_possible_moves(self):
         possible_moves = []
+        # only calculate possible moves once for performance purposes
+        if self.calculated_moves:
+            return self.possible_moves
         # loop through the directions that the rook can move in
         for direction in [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]]:
             # add all legal moves in a direction until a piece is hit
             move = [self.pos[0] + direction[0], self.pos[1] + direction[1]]
-            if self.board.is_legal_move(self.pos, move):
+            if self.board.is_valid_move(self.pos, move):
                 possible_moves.append(move)
+        # add castling moves
+        if self.can_castle('K'):
+            move = self.castle_squares['K'][-1].copy()
+            possible_moves.append(move.append('CASTLING'))
+        if self.can_castle('Q'):
+            move = self.castle_squares['Q'][-1].copy()
+            possible_moves.append(move.append('CASTLING'))
+        self.possible_moves = possible_moves
         return possible_moves
 
     def can_castle(self, side='K'):
@@ -183,12 +218,11 @@ class King(Piece):
             if not self.board.get_square(sqr[0], sqr[1]).is_empty():
                 empty = False
         moved = self.has_moved
-        rooks = self.board.get_pieces_by_color(self.color)
+        rooks = self.board.get_pieces_by_type('R')
         for rook in rooks:
-            if rook.captured or rook.has_moved:
+            if rook.color == self.color and (rook.captured or rook.has_moved):
                 moved = True
-        # TODO: modify is_legal_move to work with castling
-        return empty and not moved and not self.in_check()
+        return empty and not moved
 
     def in_check(self):
         # get the opponent's color
@@ -196,5 +230,6 @@ class King(Piece):
         attackers = self.board.get_pieces_by_color(opponent)
         for piece in attackers:
             if list(self.pos) in piece.get_possible_moves():
+                piece.get_possible_moves()
                 return True
         return False
