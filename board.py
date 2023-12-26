@@ -1,4 +1,4 @@
-from constants import *
+from constants import MOVE_TYPES
 from piece import *
 from square import Square
 
@@ -14,6 +14,7 @@ class Board:
 
         self.pieces = []
         self.setup_board()
+        self.en_passant_pawn = None
 
     def get_piece(self, x, y) -> Piece | None:
         for piece in self.pieces:
@@ -45,13 +46,6 @@ class Board:
         for piece in self.pieces:
             if piece.piece_type == 'K' and piece.color == color:
                 return piece
-
-    def get_en_passant_pawn(self) -> Pawn | None:
-        for piece in self.pieces:
-            if piece.piece_type == '':
-                if piece.en_passant:
-                    return piece
-        return None
 
     # initialize all the pieces and squares
     def setup_board(self):
@@ -109,12 +103,28 @@ class Board:
             return False
         return True
 
-    def is_legal_move(self, start_pos, dest_pos):
+    def is_legal_move(self, start_pos, dest_pos, move_type=MOVE_TYPES['NORMAL']):
         piece1 = self.get_piece(start_pos[0], start_pos[1])
-        # not legal if move allows own king to be in check
-        next_board = self.copy()
-        next_board.move(start_pos, dest_pos)
-        return not next_board.get_king(piece1.color).in_check()
+        if move_type == MOVE_TYPES['NORMAL'] or move_type == MOVE_TYPES['PAWN_JUMP']:
+            # not legal if move allows own king to be in check
+            next_board = self.copy()
+            next_board.move(start_pos, dest_pos)
+            return not next_board.get_king(piece1.color).in_check()
+        if move_type == MOVE_TYPES['CASTLING']:
+            # can't castle in check
+            if self.get_king(piece1.color).in_check():
+                return False
+            # get the castle squares and castle type
+            castle_type = 'Q' if dest_pos[0] == 2 else 'K'
+            castle_squares = King.get_castle_squares(piece1.color, castle_type)
+            # move king through the castle squares
+            for square in castle_squares:
+                next_board = self.copy()
+                next_board.move(start_pos, square)
+                # king can't castle through check
+                if next_board.get_king(piece1.color).in_check():
+                    return False
+        return True
 
     @staticmethod
     def from_str(data):

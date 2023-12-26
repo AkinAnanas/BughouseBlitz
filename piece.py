@@ -44,7 +44,6 @@ class Piece:
 class Pawn(Piece):
     def __init__(self, b, x, y, c):
         super(Pawn, self).__init__(b, x, y, c, '')
-        self.en_passant = False
 
     def get_possible_moves(self):
         if self.captured:
@@ -56,11 +55,11 @@ class Pawn(Piece):
             return self.possible_moves
         # moving vertically
         move1 = [self.pos[0], self.pos[1] + direction]
-        move2 = [self.pos[0], self.pos[1] + direction * 2]
-        #move2 = [self.pos[0], self.pos[1] + direction * 2, 'EN_PASSANT']
+        move2 = [self.pos[0], self.pos[1] + direction * 2, 'PAWN_JUMP']
         if self.board.is_valid_move(self.pos, move1) and self.board.get_square(move1[0], move1[1]).is_empty():
             possible_moves.append(move1)
-        if self.board.is_valid_move(self.pos, move2) and self.board.get_square(move2[0], move2[1]).is_empty() and not self.has_moved:
+        if self.board.is_valid_move(self.pos, move2) and self.board.get_square(move2[0], move2[
+            1]).is_empty() and not self.has_moved:
             possible_moves.append(move2)
         # capturing diagonally
         diagonal_moves = [[self.pos[0] - 1, self.pos[1] + direction], [self.pos[0] + 1, self.pos[1] + direction]]
@@ -185,10 +184,9 @@ class Queen(Piece):
 class King(Piece):
     def __init__(self, b, x, y, c):
         super(King, self).__init__(b, x, y, c, 'K')
-        self.castle_squares = {
-            'K': [[self.pos[0] + 1, self.pos[1]], [self.pos[0] + 2, self.pos[1]]],
-            'Q': [[self.pos[0] - 1, self.pos[1]], [self.pos[0] - 2, self.pos[1]], [self.pos[0] - 3, self.pos[1]]]
-        }
+        king_side = King.get_castle_squares(self.color, 'K')
+        queen_side = King.get_castle_squares(self.color, 'Q')
+        self.castle_squares = {'K': king_side, 'Q': queen_side}
 
     def get_possible_moves(self):
         possible_moves = []
@@ -204,10 +202,12 @@ class King(Piece):
         # add castling moves
         if self.can_castle('K'):
             move = self.castle_squares['K'][-1].copy()
-            possible_moves.append(move.append('CASTLING'))
+            move.append('CASTLING')
+            possible_moves.append(move)
         if self.can_castle('Q'):
             move = self.castle_squares['Q'][-1].copy()
-            possible_moves.append(move.append('CASTLING'))
+            move.append('CASTLING')
+            possible_moves.append(move)
         self.possible_moves = possible_moves
         return possible_moves
 
@@ -230,6 +230,14 @@ class King(Piece):
         attackers = self.board.get_pieces_by_color(opponent)
         for piece in attackers:
             if list(self.pos) in piece.get_possible_moves():
-                piece.get_possible_moves()
                 return True
         return False
+
+    @staticmethod
+    def get_castle_squares(color, castle_type):
+        start_pos = [4, 0] if color == WHITE else [4, 7]
+        castle_squares = {
+            'K': [[start_pos[0] + 1, start_pos[1]], [start_pos[0] + 2, start_pos[1]]],
+            'Q': [[start_pos[0] - 1, start_pos[1]], [start_pos[0] - 2, start_pos[1]]]
+        }
+        return castle_squares[castle_type]

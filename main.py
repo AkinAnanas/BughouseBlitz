@@ -9,7 +9,8 @@ from kivy.uix.widget import Widget
 from kivy.uix.button import Button
 
 from constants import *
-from game import Game, GAME_TYPES, MOVE_TYPES
+from game import Game
+from constants import GAME_TYPES, MOVE_TYPES
 from theme import THEMES
 import utils
 
@@ -71,6 +72,8 @@ class BoardWidget(Widget):
         self.render_danger()
 
     def render_danger(self):
+        if self.game.game_type == GAME_TYPES['UNDEFINED']:
+            return
         danger = self.theme.danger
         kings = [self.game.view_board.get_king(WHITE), self.game.view_board.get_king(BLACK)]
         for king in kings:
@@ -90,7 +93,7 @@ class BoardWidget(Widget):
         # loop through the possible moves
         for move in self.selected_piece.get_possible_moves():
             # only render legal moves
-            if self.game.validate_move(self.selected_piece.pos, move) == MOVE_TYPES['ILLEGAL']:
+            if self.game.validate_move(self.selected_piece.pos, move[0:2]) == MOVE_TYPES['ILLEGAL']:
                 continue
             # get the draw position of the square
             sqr = self.game.board.get_square(move[0], move[1])
@@ -115,22 +118,25 @@ class BoardWidget(Widget):
         self.render()
 
     def new_game(self):
-        layout = BoxLayout(orientation='vertical')
-        cancel_button = Button(text='Cancel')
-        buttons = []
-        for k, v in GAME_TYPES.items():
-            if v >= 0:
-                text = (k.replace('/', ' vs ').replace('+', ' + ')
-                        .replace(' P', ' Player').replace('P ', 'Player '))
-                button = StartButton(board_widget=self, text=f'{v}. {text}')
-                layout.add_widget(button)
-                buttons.append(button)
-        layout.add_widget(cancel_button)
-        self.popup = Popup(title='New Game', content=layout, auto_dismiss=False)
-        cancel_button.bind(on_press=self.popup.dismiss)
-        for button in buttons:
-            button.popup = self.popup
-        self.popup.open()
+        if not self.game.started:
+            layout = BoxLayout(orientation='vertical')
+            cancel_button = Button(text='Cancel')
+            buttons = []
+            for k, v in GAME_TYPES.items():
+                if v >= 0:
+                    text = (k.replace('/', ' vs ').replace('+', ' + ')
+                            .replace(' P', ' Player').replace('P ', 'Player '))
+                    button = StartButton(board_widget=self, text=f'{v}. {text}')
+                    layout.add_widget(button)
+                    buttons.append(button)
+            layout.add_widget(cancel_button)
+            self.popup = Popup(title='New Game', content=layout, auto_dismiss=False)
+            cancel_button.bind(on_press=self.popup.dismiss)
+            for button in buttons:
+                button.popup = self.popup
+            self.popup.open()
+        else:
+            self.game.end_game()
 
     def start_game(self, game_type):
         if game_type < 3:  # single-player chosen
@@ -225,7 +231,7 @@ class StartButton(Button):
 
 
 class BughouseBlitzApp(App):
-    theme = THEMES['BLUE']
+    theme = THEMES['DEFAULT']
 
     def build(self):
         return FloatLayout()
