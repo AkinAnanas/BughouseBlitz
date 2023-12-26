@@ -66,6 +66,15 @@ class Pawn(Piece):
         for move in diagonal_moves:
             if self.board.is_valid_move(self.pos, move) and not self.board.get_square(move[0], move[1]).is_empty():
                 possible_moves.append(move)
+        # en passant
+        if self.board.en_passant_pawn is not None:
+            if not self.board.en_passant_pawn.color == self.color:
+                pawn_pos = self.board.en_passant_pawn.pos
+                distance = [abs(pawn_pos[0] - self.pos[0]), abs(pawn_pos[1] - self.pos[1])]
+                if distance[0] == 1 and distance[1] == 0:
+                    direction = -1 if self.board.en_passant_pawn.color == WHITE else 1
+                    move = [pawn_pos[0], pawn_pos[1] + direction, 'EN_PASSANT']
+                    possible_moves.append(move)
         self.possible_moves = possible_moves
         return possible_moves
 

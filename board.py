@@ -1,3 +1,4 @@
+import utils
 from constants import MOVE_TYPES
 from piece import *
 from square import Square
@@ -84,15 +85,33 @@ class Board:
                   bn2, wb1, wb2, bb1, bb2, wq, bq, wk, bk]:
             self.pieces.append(p)
 
-    def move(self, start_pos, dest_pos):
+    def move(self, start_pos, dest_pos, capture=False):
+        """
+        move a piece to the specified location and play a sound
+        :param start_pos: list representing the starting location
+        :param dest_pos: list representing the ending location
+        :param capture: bool representing whether the move captures a piece or not
+        :return: None
+        """
         piece1 = self.get_piece(start_pos[0], start_pos[1])
         piece2 = self.get_piece(dest_pos[0], dest_pos[1])
         piece1.pos = tuple(dest_pos)
         piece1.has_moved = True
         if piece2 is not None:
             piece2.capture()
+        # if this is not a copy, play the move sound
+        if self.index > -1:
+            utils.play_sound('CAPTURE' if capture else 'MOVE')
 
     def is_valid_move(self, start_pos, dest_pos):
+        """
+        checks if a move is valid, meaning:
+        the player can't move off of the board and,
+        the player can't capture their own piece
+        :param start_pos: list representing the starting location
+        :param dest_pos: list representing the ending location
+        :return: bool
+        """
         piece1 = self.get_piece(start_pos[0], start_pos[1])
         piece2 = self.get_piece(dest_pos[0], dest_pos[1])
         # cannot capture your own piece
@@ -104,6 +123,13 @@ class Board:
         return True
 
     def is_legal_move(self, start_pos, dest_pos, move_type=MOVE_TYPES['NORMAL']):
+        """
+        checks if a move is legal (meaning the move doesn't place one's own king in check)
+        :param start_pos: list representing the starting location
+        :param dest_pos: list representing the ending location
+        :param move_type: int representing the move type
+        :return: bool
+        """
         piece1 = self.get_piece(start_pos[0], start_pos[1])
         if move_type == MOVE_TYPES['NORMAL'] or move_type == MOVE_TYPES['PAWN_JUMP']:
             # not legal if move allows own king to be in check
@@ -123,6 +149,22 @@ class Board:
                 next_board.move(start_pos, square)
                 # king can't castle through check
                 if next_board.get_king(piece1.color).in_check():
+                    return False
+        return True
+
+    def is_checkmate(self, color):
+        """
+        checks if the black or white king is in checkmate
+        :param color: int representing black or white
+        :return: bool
+        """
+        if not self.get_king(color).in_check():
+            return False
+        pieces = self.get_pieces_by_color(color)
+        for piece in pieces:
+            for move in piece.get_possible_moves():
+                move_type = MOVE_TYPES['NORMAL'] if len(move) == 2 else MOVE_TYPES[move[-1]]
+                if self.is_legal_move(piece.pos, move[0:2], move_type):
                     return False
         return True
 
@@ -166,10 +208,17 @@ class Board:
         return board
 
     def copy(self):
+        # create a new board
         board = Board()
         board.pieces.clear()
+        # copy the pieces
         for piece in self.pieces:
             board.pieces.append(piece.copy(board, type(piece)))
+        # copy the en passant pawn if it exists
+        if self.en_passant_pawn is not None:
+            pawn_pos = self.en_passant_pawn.pos
+            pawn = board.get_piece(pawn_pos[0], pawn_pos[1])
+            board.en_passant_pawn = pawn
         return board
 
     def __str__(self):

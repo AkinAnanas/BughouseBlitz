@@ -44,8 +44,10 @@ class Game:
             self.black_player_type = AI if starts_white else HUMAN
         utils.play_sound('NOTIFY')
 
-    def end_game(self):
-        pass
+    def end_game(self, winner):
+        print('Winner:', winner)
+        self.started = False
+        self.game_type = GAME_TYPES['UNDEFINED']
 
     def move(self, start_pos, dest_pos):
         next_board = self.board.copy()
@@ -56,7 +58,8 @@ class Game:
         if piece1 is None or move_type == MOVE_TYPES['ILLEGAL']:
             return False  # move is not valid
         if move_type == MOVE_TYPES['NORMAL']:
-            next_board.move(start_pos, dest_pos)
+            next_board.move(start_pos, dest_pos, piece2 is not None)
+            next_board.en_passant_pawn = None
         if move_type == MOVE_TYPES['PAWN_JUMP']:
             next_board.move(start_pos, dest_pos)
             next_board.en_passant_pawn = piece1
@@ -66,22 +69,26 @@ class Game:
             castle_squares = King.get_castle_squares(piece1.color, castle_type)
             # move the king to the last castle square
             next_board.move(start_pos, castle_squares[-1])
+            time.sleep(.1)
             # move the rook to the first castle square
             rook_pos = [0 if castle_type == 'Q' else 7, 0 if piece1.color == WHITE else 7]
             next_board.move(rook_pos, castle_squares[0])
-            # play sound twice when castling
-            utils.play_sound('CAPTURE' if piece2 is not None else 'MOVE')
-            time.sleep(.1)
-        utils.play_sound('CAPTURE' if piece2 is not None else 'MOVE')
+            next_board.en_passant_pawn = None
+        if move_type == MOVE_TYPES['EN_PASSANT']:
+            next_board.move(start_pos, dest_pos, True)
+            next_board.en_passant_pawn.capture()
         # update the board and view_board
         self.board = next_board
         self.view_board = self.board
         self.index = self.view_board.index
         self.boards.append(self.board)
         # update turns
+        prev = self.turn
         self.turn = WHITE if self.turn == BLACK else BLACK  # toggle who moves
         if piece1.color == WHITE:
             self.moves += 1
+        if self.board.is_checkmate(self.turn):
+            self.end_game(prev)
         return True  # move successful
 
     def validate_move(self, start_pos, dest_pos):
