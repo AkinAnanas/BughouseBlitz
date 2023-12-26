@@ -138,12 +138,17 @@ class BoardWidget(Widget):
                 button.popup = self.popup
             self.popup.open()
         else:
-            self.game.end_game()
+            winner = WHITE if self.game.turn == BLACK else BLACK
+            self.game.end_game(winner)
+            self.app.button.text = 'New Game'
+            self.app.button.background_color = self.app.theme.dark
 
     def start_game(self, game_type):
-        if game_type < 3:  # single-player chosen
+        if game_type == 0:  # single-player chosen
             self.game.start_game(game_type)
             self.render()
+            self.app.button.text = 'Resign'
+            self.app.button.background_color = self.app.theme.danger
         else:  # multi-player, initiate server communication
             pass
 
@@ -206,7 +211,7 @@ class BoardWidget(Widget):
             result = self.game.move(self.selected_piece.pos, sqr.pos)
             self.selected_square = None
             self.selected_piece = None
-            if self.auto_flip and result and self.game.game_type == GAME_TYPES['P/P']:
+            if self.auto_flip and result and self.game.game_type == GAME_TYPES['P/P (Local)']:
                 self.flip()
             self.render()
 
@@ -235,8 +240,15 @@ class StartButton(Button):
 class BughouseBlitzApp(App):
     theme = THEMES['DEFAULT']
 
+    def __init__(self, **kwargs):
+        super(BughouseBlitzApp, self).__init__(**kwargs)
+        self.button = None
+        self.layout = None
+
     def build(self):
-        return FloatLayout()
+        self.layout = FloatLayout()
+        self.button = self.layout.ids.button
+        return self.layout
 
 
 if __name__ == '__main__':

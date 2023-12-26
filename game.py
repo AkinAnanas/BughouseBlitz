@@ -1,9 +1,5 @@
 import time
-
-import utils
 from board import *
-from random import randrange
-
 from constants import *
 
 
@@ -16,9 +12,8 @@ class Game:
         self.turn = WHITE  # white starts first
         self.moves = 0  # move count
         self.notation = []  # the chess notation of the game
-        self.white_player_type, self.black_player_type = HUMAN, HUMAN
         self.game_type = GAME_TYPES['UNDEFINED']  # before the game starts anything can be moved anywhere
-        self.time_control = PRESET_TIME_CONTROLS['BLITZ']  # seconds + increments
+        self.time_control = PRESET_TIME_CONTROLS['BLITZ']  # minutes + increments
         self.index = self.view_board.index
         self.multiplayer = False
         self.started = False
@@ -34,14 +29,7 @@ class Game:
         self.moves = 0
         self.started = True
 
-        # randomize who starts as white
-        starts_white = randrange(0, 2) == 0
-        # process the game type
-        if game_type == GAME_TYPES['P/P']:
-            self.white_player_type, self.black_player_type = HUMAN, HUMAN
-        if game_type == GAME_TYPES['P/CPU']:
-            self.white_player_type = HUMAN if starts_white else AI
-            self.black_player_type = AI if starts_white else HUMAN
+        # TODO: handle multiplayer here
         utils.play_sound('NOTIFY')
 
     def end_game(self, winner):

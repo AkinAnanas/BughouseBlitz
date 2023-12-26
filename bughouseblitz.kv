@@ -54,11 +54,12 @@
             Label:
                 text: ' a b c d e f g h '
                 size_hint: .9, .05
-                pos_hint: {'x':.05,'y':.05}
+                pos_hint: {'x': .05,'y': .05}
                 color: 1, 1, 1, 1
     BoxLayout:
         size_hint: 1, .1
         Button:
+            id: button
             text: 'New Game'
             on_press: board_widget.new_game()
         Button:
