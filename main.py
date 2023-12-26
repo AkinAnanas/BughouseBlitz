@@ -12,6 +12,7 @@ from constants import *
 from game import Game
 from constants import GAME_TYPES, MOVE_TYPES
 from theme import THEMES
+from commands import CommandListener
 import utils
 
 
@@ -30,6 +31,7 @@ class BoardWidget(Widget):
         self.show_possible_moves = True
         self.margin = 0
         self.square_length = 0
+        self.command_listener = CommandListener()
         self.bind(size=self.render, pos=self.render)
 
     def render(self, *args):
